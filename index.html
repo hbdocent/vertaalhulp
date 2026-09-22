@@ -5,39 +5,77 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vertaalhulp voor Leerlingen</title>
     <style>
+        :root {
+            --bg-color: #f5f5f5;
+            --container-bg: #fff;
+            --text-color: #333;
+            --input-bg: #fff;
+            --input-border: #ddd;
+            --button-bg: #3498db;
+            --button-text: #fff;
+            --output-bg: #fff;
+            --output-border: #ddd;
+        }
+
+        .dark-mode {
+            --bg-color: #222;
+            --container-bg: #111;
+            --text-color: #eee;
+            --input-bg: #333;
+            --input-border: #444;
+            --button-bg: #3498db;
+            --button-text: #fff;
+            --output-bg: #333;
+            --output-border: #444;
+        }
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             max-width: 800px;
             margin: 0 auto;
             padding: 20px;
-            background-color: #222;
-            color: #eee;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: background-color 0.3s, color 0.3s;
         }
+
         .container {
-            background-color: #111;
+            background-color: var(--container-bg);
             padding: 20px;
             border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
+
         h1 {
-            color: #fff;
+            color: var(--text-color);
             text-align: center;
         }
-        .input-section {
+
+        .theme-toggle {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
             margin-bottom: 20px;
         }
+
+        .theme-toggle label {
+            cursor: pointer;
+        }
+
         textarea {
             width: 100%;
             height: 120px;
             margin: 10px 0;
             padding: 10px;
-            border: 1px solid #444;
+            border: 1px solid var(--input-border);
             border-radius: 5px;
             font-size: 16px;
-            background-color: #333;
-            color: #eee;
+            background-color: var(--input-bg);
+            color: var(--text-color);
             resize: vertical;
         }
+
         .language-selector {
             display: flex;
             justify-content: center;
@@ -45,32 +83,37 @@
             margin: 20px 0;
             flex-wrap: wrap;
         }
+
         .language-pair {
             display: flex;
             align-items: center;
             gap: 10px;
         }
+
         select, button {
             padding: 10px 15px;
-            border: 1px solid #444;
+            border: 1px solid var(--input-border);
             border-radius: 5px;
             font-size: 16px;
-            background-color: #333;
-            color: #eee;
+            background-color: var(--input-bg);
+            color: var(--text-color);
             cursor: pointer;
         }
+
         button {
-            background-color: #3498db;
-            color: white;
+            background-color: var(--button-bg);
+            color: var(--button-text);
             border: none;
             transition: all 0.3s;
             border-radius: 25px;
             font-weight: bold;
         }
+
         button:hover {
-            background-color: #2980b9;
+            opacity: 0.9;
             transform: scale(1.05);
         }
+
         .button-group {
             display: flex;
             justify-content: center;
@@ -78,17 +121,19 @@
             margin: 20px 0;
             flex-wrap: wrap;
         }
+
         #outputText {
             margin-top: 20px;
             padding: 15px;
-            border: 1px solid #444;
+            border: 1px solid var(--output-border);
             border-radius: 5px;
-            background-color: #333;
-            color: #eee;
+            background-color: var(--output-bg);
+            color: var(--text-color);
             min-height: 60px;
             text-align: left;
             font-size: 16px;
         }
+
         @media (max-width: 600px) {
             .language-selector {
                 flex-direction: column;
@@ -107,6 +152,12 @@
 <body>
     <div class="container">
         <h1>🌍 Vertaalhulp voor Leerlingen</h1>
+
+        <div class="theme-toggle">
+            <label for="themeSwitch">Donkere modus:</label>
+            <input type="checkbox" id="themeSwitch" onclick="toggleTheme()">
+        </div>
+
         <p>Typ of spreek je tekst en kies de talen:</p>
 
         <div class="input-section">
@@ -144,6 +195,25 @@
     </div>
 
     <script>
+        // Functie om het thema te wisselen
+        function toggleTheme() {
+            const body = document.body;
+            const isDarkMode = body.classList.toggle("dark-mode");
+
+            // Sla de voorkeur op in localStorage
+            localStorage.setItem("darkMode", isDarkMode);
+        }
+
+        // Controleer of de gebruiker eerder donkere modus heeft gekozen
+        document.addEventListener("DOMContentLoaded", () => {
+            const savedTheme = localStorage.getItem("darkMode");
+            if (savedTheme === "true") {
+                document.body.classList.add("dark-mode");
+                document.getElementById("themeSwitch").checked = true;
+            }
+        });
+
+        // Vertaalfunctie
         async function translateText() {
             const inputText = document.getElementById("inputText").value;
             const sourceLang = document.getElementById("sourceLang").value;
@@ -173,6 +243,7 @@
             }
         }
 
+        // Spraakherkenning
         function startListening() {
             const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
             recognition.lang = document.getElementById("sourceLang").value;
