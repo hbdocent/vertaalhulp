@@ -82,15 +82,15 @@
             background-color: rgba(52, 152, 219, 0.1);
         }
 
-        .language-selector {
+        .language-selector, .voice-selector {
             display: flex;
             justify-content: center;
             gap: 20px;
-            margin: 20px 0;
+            margin: 10px 0;
             flex-wrap: wrap;
         }
 
-        .language-pair {
+        .language-pair, .voice-pair {
             display: flex;
             align-items: center;
             gap: 10px;
@@ -141,11 +141,11 @@
         }
 
         @media (max-width: 600px) {
-            .language-selector {
+            .language-selector, .voice-selector {
                 flex-direction: column;
                 gap: 10px;
             }
-            .language-pair {
+            .language-pair, .voice-pair {
                 justify-content: center;
             }
             button {
@@ -178,7 +178,6 @@
                     <option value="en">🇬🇧 Engels</option>
                     <option value="ar">🇸🇦 Arabisch</option>
                     <option value="so">🇸🇴 Somalisch</option>
-                    
                 </select>
             </div>
             <div class="language-pair">
@@ -189,6 +188,13 @@
                     <option value="ar">🇸🇦 Arabisch</option>
                     <option value="so">🇸🇴 Somalisch</option>
                 </select>
+            </div>
+        </div>
+
+        <div class="voice-selector">
+            <div class="voice-pair">
+                <label for="voiceSelect">Stem:</label>
+                <select id="voiceSelect" onchange="updateVoice()"></select>
             </div>
         </div>
 
@@ -204,8 +210,9 @@
     </div>
 
     <script>
-        // Variabele om de recognition bij te houden
+        // Variabele om de recognition en geselecteerde stem bij te houden
         let recognition;
+        let selectedVoice = null;
 
         // Functie om het thema te wisselen
         function toggleTheme() {
@@ -221,6 +228,12 @@
                 document.body.classList.add("dark-mode");
                 document.getElementById("themeSwitch").checked = true;
             }
+
+            // Laad stemmen wanneer de pagina laadt
+            loadVoices();
+            if (speechSynthesis.onvoiceschanged !== undefined) {
+                speechSynthesis.onvoiceschanged = loadVoices;
+            }
         });
 
         // Functie om de juiste taalcode te returnen
@@ -232,6 +245,51 @@
                 case "so": return "so-SO";
                 default: return "en-US";
             }
+        }
+
+        // Functie om de beste stem te selecteren voor een taal
+        function getBestVoice(lang) {
+            const voices = speechSynthesis.getVoices();
+            const langPrefix = lang.split('-')[0];
+
+            for (const voice of voices) {
+                if (voice.lang.startsWith(langPrefix) && (voice.name.includes("Wavenet") || voice.name.includes("Google"))) {
+                    return voice;
+                }
+            }
+
+            const filteredVoices = voices.filter(voice => voice.lang.startsWith(langPrefix));
+            if (filteredVoices.length > 0) {
+                return filteredVoices[0];
+            }
+
+            return voices.find(voice => voice.lang.startsWith("en")) || voices[0];
+        }
+
+        // Laad stemmen in de dropdown
+        function loadVoices() {
+            const voiceSelect = document.getElementById("voiceSelect");
+            const voices = speechSynthesis.getVoices();
+
+            voiceSelect.innerHTML = "";
+
+            voices.forEach(voice => {
+                const option = document.createElement("option");
+                option.textContent = `${voice.name} (${voice.lang})`;
+                option.setAttribute("data-lang", voice.lang);
+                option.setAttribute("data-name", voice.name);
+                voiceSelect.appendChild(option);
+            });
+        }
+
+        // Update de geselecteerde stem
+        function updateVoice() {
+            const voiceSelect = document.getElementById("voiceSelect");
+            const selectedOption = voiceSelect.selectedOptions[0];
+            const voiceName = selectedOption.getAttribute("data-name");
+            const voices = speechSynthesis.getVoices();
+
+            selectedVoice = voices.find(voice => voice.name === voiceName);
         }
 
         // Spraakherkenning starten
@@ -335,6 +393,21 @@
 
             const utterance = new SpeechSynthesisUtterance(outputText);
             utterance.lang = getLanguageCode(targetLang);
+
+            // Gebruik de geselecteerde stem (als deze is gekozen)
+            if (selectedVoice) {
+                utterance.voice = selectedVoice;
+            } else {
+                // Anders: kies de beste stem automatisch
+                const bestVoice = getBestVoice(utterance.lang);
+                if (bestVoice) {
+                    utterance.voice = bestVoice;
+                }
+            }
+
+            // Verbeter de uitspraak
+            utterance.rate = 0.9; // Langzamer praten
+            utterance.pitch = 1.0; // Normale toonhoogte
 
             utterance.onerror = (event) => {
                 console.error("Fout bij voorlezen:", event.error);
