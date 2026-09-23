@@ -172,9 +172,6 @@
                     <option value="en">🇬🇧 Engels</option>
                     <option value="ar">🇸🇦 Arabisch</option>
                     <option value="so">🇸🇴 Somalisch</option>
-                    <option value="uk">uk Oekraïns</option>
-                    <option value="ru">ru Russisch</option>
-                    <option value="tr">tr Turks</option>
                 </select>
             </div>
             <div class="language-pair">
@@ -184,9 +181,6 @@
                     <option value="nl">🇳🇱 Nederlands</option>
                     <option value="ar">🇸🇦 Arabisch</option>
                     <option value="so">🇸🇴 Somalisch</option>
-                    <option value="uk">uk Oekraïns</option>
-                    <option value="ru">ru Russisch</option>
-                    <option value="tr">tr Turks</option>
                 </select>
             </div>
         </div>
@@ -194,6 +188,7 @@
         <div class="button-group">
             <button onclick="translateText()">Vertalen</button>
             <button onclick="startListening()">🎤 Spraak opnemen</button>
+            <button onclick="speakText()">🔊 Voorlezen</button>
         </div>
 
         <h3>Vertaalde tekst:</h3>
@@ -205,8 +200,6 @@
         function toggleTheme() {
             const body = document.body;
             const isDarkMode = body.classList.toggle("dark-mode");
-
-            // Sla de voorkeur op in localStorage
             localStorage.setItem("darkMode", isDarkMode);
         }
 
@@ -270,6 +263,44 @@
             };
 
             recognition.start();
+        }
+
+        // Voorleesfunctie
+        function speakText() {
+            const outputText = document.getElementById("outputText").textContent;
+            const targetLang = document.getElementById("targetLang").value;
+
+            if (!outputText || outputText === "Vertaalde tekst:" || outputText === "Vertalen...") {
+                alert("Er is geen tekst om voor te lezen. Vertaal eerst een tekst.");
+                return;
+            }
+
+            const utterance = new SpeechSynthesisUtterance(outputText);
+
+            // Stel de taal in
+            switch (targetLang) {
+                case "nl":
+                    utterance.lang = "nl-NL";
+                    break;
+                case "en":
+                    utterance.lang = "en-US";
+                    break;
+                case "ar":
+                    utterance.lang = "ar-SA";
+                    break;
+                case "so":
+                    utterance.lang = "so-SO";
+                    break;
+                default:
+                    utterance.lang = "en-US";
+            }
+
+            utterance.onerror = (event) => {
+                console.error("Fout bij voorlezen:", event.error);
+                alert("Er is een fout opgetreden bij het voorlezen. Probeer het opnieuw.");
+            };
+
+            speechSynthesis.speak(utterance);
         }
     </script>
 </body>
