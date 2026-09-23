@@ -74,6 +74,12 @@
             background-color: var(--input-bg);
             color: var(--text-color);
             resize: vertical;
+            transition: border 0.3s, background-color 0.3s;
+        }
+
+        .listening {
+            border: 2px solid #3498db;
+            background-color: rgba(52, 152, 219, 0.1);
         }
 
         .language-selector {
@@ -172,7 +178,6 @@
                     <option value="en">🇬🇧 Engels</option>
                     <option value="ar">🇸🇦 Arabisch</option>
                     <option value="so">🇸🇴 Somalisch</option>
-                    <option value="tr">tr Turks</option>
                 </select>
             </div>
             <div class="language-pair">
@@ -182,7 +187,6 @@
                     <option value="nl">🇳🇱 Nederlands</option>
                     <option value="ar">🇸🇦 Arabisch</option>
                     <option value="so">🇸🇴 Somalisch</option>
-                    <option value="tr">tr Turks</option>
                 </select>
             </div>
         </div>
@@ -190,6 +194,7 @@
         <div class="button-group">
             <button onclick="translateText()">Vertalen</button>
             <button onclick="startListening()">🎤 Spraak opnemen</button>
+            <button onclick="stopListening()">⏹️ Stop opname</button>
             <button onclick="speakText()">🔊 Voorlezen</button>
         </div>
 
@@ -198,6 +203,9 @@
     </div>
 
     <script>
+        // Variabele om de recognition bij te houden
+        let recognition;
+
         // Functie om het thema te wisselen
         function toggleTheme() {
             const body = document.body;
@@ -213,6 +221,76 @@
                 document.getElementById("themeSwitch").checked = true;
             }
         });
+
+        // Functie om de juiste taalcode te returnen
+        function getLanguageCode(lang) {
+            switch (lang) {
+                case "nl": return "nl-NL";
+                case "en": return "en-US";
+                case "ar": return "ar-SA";
+                case "so": return "so-SO";
+                default: return "en-US";
+            }
+        }
+
+        // Spraakherkenning starten
+        function startListening() {
+            if (recognition && recognition.state !== "inactive") {
+                recognition.stop();
+            }
+
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                alert("Je browser ondersteunt spraakherkenning niet. Gebruik Chrome of Edge.");
+                return;
+            }
+
+            recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.lang = getLanguageCode(document.getElementById("sourceLang").value);
+            recognition.continuous = false;
+            recognition.interimResults = false;
+
+            recognition.onstart = () => {
+                document.getElementById("inputText").placeholder = "Aan het luisteren...";
+                document.getElementById("inputText").classList.add("listening");
+            };
+
+            recognition.onend = () => {
+                document.getElementById("inputText").placeholder = "Typ hier je tekst...";
+                document.getElementById("inputText").classList.remove("listening");
+            };
+
+            recognition.onerror = (event) => {
+                console.error("Spraakherkenning fout:", event.error);
+                document.getElementById("inputText").placeholder = "Typ hier je tekst...";
+                document.getElementById("inputText").classList.remove("listening");
+
+                if (event.error === "not-allowed") {
+                    alert("Microfoontoestemming is geblokkeerd. Geef toestemming in je browserinstellingen.");
+                } else if (event.error === "no-speech") {
+                    alert("Geen spraak gedetecteerd. Probeer het opnieuw.");
+                } else {
+                    alert("Er is een fout opgetreden: " + event.error);
+                }
+            };
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                document.getElementById("inputText").value = transcript;
+                document.getElementById("inputText").placeholder = "Typ hier je tekst...";
+                document.getElementById("inputText").classList.remove("listening");
+            };
+
+            recognition.start();
+        }
+
+        // Spraakherkenning stoppen
+        function stopListening() {
+            if (recognition && recognition.state !== "inactive") {
+                recognition.stop();
+                document.getElementById("inputText").placeholder = "Typ hier je tekst...";
+                document.getElementById("inputText").classList.remove("listening");
+            }
+        }
 
         // Vertaalfunctie
         async function translateText() {
@@ -244,29 +322,6 @@
             }
         }
 
-        // Spraakherkenning
-        function startListening() {
-            const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-            recognition.lang = document.getElementById("sourceLang").value;
-
-            recognition.onstart = () => {
-                document.getElementById("inputText").placeholder = "Aan het luisteren...";
-            };
-
-            recognition.onresult = (event) => {
-                const transcript = event.results[0][0].transcript;
-                document.getElementById("inputText").value = transcript;
-                document.getElementById("inputText").placeholder = "Typ hier je tekst...";
-            };
-
-            recognition.onerror = (event) => {
-                console.error("Spraakherkenning fout:", event.error);
-                document.getElementById("inputText").placeholder = "Typ hier je tekst...";
-            };
-
-            recognition.start();
-        }
-
         // Voorleesfunctie
         function speakText() {
             const outputText = document.getElementById("outputText").textContent;
@@ -278,24 +333,7 @@
             }
 
             const utterance = new SpeechSynthesisUtterance(outputText);
-
-            // Stel de taal in
-            switch (targetLang) {
-                case "nl":
-                    utterance.lang = "nl-NL";
-                    break;
-                case "en":
-                    utterance.lang = "en-US";
-                    break;
-                case "ar":
-                    utterance.lang = "ar-SA";
-                    break;
-                case "so":
-                    utterance.lang = "so-SO";
-                    break;
-                default:
-                    utterance.lang = "en-US";
-            }
+            utterance.lang = getLanguageCode(targetLang);
 
             utterance.onerror = (event) => {
                 console.error("Fout bij voorlezen:", event.error);
