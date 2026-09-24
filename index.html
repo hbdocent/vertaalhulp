@@ -295,6 +295,18 @@
             }
         }
 
+        // Voeg dit toe aan je server.js
+app.get("/voices", async (req, res) => {
+    try {
+        const response = await axios.get(`https://texttospeech.googleapis.com/v1/voices?key=${API_KEY}`);
+        const somaliVoices = response.data.voices.filter(voice => voice.languageCodes.includes("so"));
+        res.json({ somaliVoices });
+    } catch (error) {
+        console.error("Fout bij het ophalen van stemmen:", error);
+        res.status(500).json({ error: "Fout bij het ophalen van stemmen." });
+    }
+});
+
         // Vertaalfunctie
         async function translateText() {
             const inputText = document.getElementById("inputText").value;
