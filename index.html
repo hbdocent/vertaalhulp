@@ -177,7 +177,6 @@
                     <option value="nl">🇳🇱 Nederlands</option>
                     <option value="en">🇬🇧 Engels</option>
                     <option value="ar">🇸🇦 Arabisch</option>
-                    <option value="so">🇸🇴 Somalisch</option>
                     <option value="tr">TR Turks</option>
                 </select>
             </div>
@@ -187,7 +186,6 @@
                     <option value="en">🇬🇧 Engels</option>
                     <option value="nl">🇳🇱 Nederlands</option>
                     <option value="ar">🇸🇦 Arabisch</option>
-                    <option value="so">🇸🇴 Somalisch</option>
                     <option value="tr">🇹🇷 Turks</option>
                 </select>
             </div>
@@ -230,7 +228,6 @@
                 case "nl": return "nl-NL";       // Nederlands
                 case "en": return "en-US";       // Engels (VS)
                 case "ar": return "ar-SA";       // Arabisch (Saoedi-Arabië)
-                case "so": return "so";          // Somalisch (Somalië)
                 case "tr": return "tr-TR";       // Turks (Turkije)
                 default: return "en-US";        // Standaard: Engels
             }
@@ -295,18 +292,6 @@
             }
         }
 
-        // Voeg dit toe aan je server.js
-app.get("/voices", async (req, res) => {
-    try {
-        const response = await axios.get(`https://texttospeech.googleapis.com/v1/voices?key=${API_KEY}`);
-        const somaliVoices = response.data.voices.filter(voice => voice.languageCodes.includes("so"));
-        res.json({ somaliVoices });
-    } catch (error) {
-        console.error("Fout bij het ophalen van stemmen:", error);
-        res.status(500).json({ error: "Fout bij het ophalen van stemmen." });
-    }
-});
-
         // Vertaalfunctie
         async function translateText() {
             const inputText = document.getElementById("inputText").value;
@@ -357,15 +342,7 @@ async function speakText() {
             ssmlGender: "NEUTRAL"
         };
 
-        // Als de taal Somalisch is, gebruik dan een specifieke stem (indien beschikbaar)
-        if (languageCode === "so-SO") {
-            voiceSettings = {
-                languageCode: "so-SO",
-                name: "so-SO-Standard-A" // Probeer een specifieke Somalische stem
-            };
-        }
-
-        const response = await fetch(`https://texttospeech.googleapis.com/v1/text:synthesize?key=${apiKey}`, {
+       const response = await fetch(`https://texttospeech.googleapis.com/v1/text:synthesize?key=${apiKey}`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
