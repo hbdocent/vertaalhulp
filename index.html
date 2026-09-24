@@ -325,28 +325,6 @@
             }
         }
         
-        // Functie om beschikbare stemmen op te halen
-async function listVoices() {
-    const apiKey = "AIzaSyDdCs_immUKneGqEkLETp0biqAEDFKqLB0";
-
-    try {
-        const response = await fetch(`https://texttospeech.googleapis.com/v1/voices?key=${apiKey}`);
-        if (!response.ok) {
-            throw new Error(`Fout bij het ophalen van stemmen: ${response.statusText}`);
-        }
-        const data = await response.json();
-        const somaliVoices = data.voices.filter(voice => voice.languageCodes.includes("so-SO"));
-        console.log("Beschikbare Somalische stemmen:", somaliVoices);
-        return somaliVoices;
-    } catch (error) {
-        console.error("Fout bij het ophalen van stemmen:", error);
-        return [];
-    }
-}
-
-// Roep deze functie aan om te zien welke stemmen beschikbaar zijn voor Somalisch
-listVoices();
-
         // Voorleesfunctie met Google Cloud TTS
 async function speakText() {
     const outputText = document.getElementById("outputText").textContent;
