@@ -82,7 +82,7 @@
             background-color: rgba(52, 152, 219, 0.1);
         }
 
-        .language-selector, .voice-selector, .speed-selector {
+        .language-selector, .speed-selector {
             display: flex;
             justify-content: center;
             align-items: center;
@@ -91,7 +91,7 @@
             flex-wrap: wrap;
         }
 
-        .language-pair, .voice-pair, .speed-pair {
+        .language-pair, .speed-pair {
             display: flex;
             align-items: center;
             gap: 10px;
@@ -152,11 +152,11 @@
         }
 
         @media (max-width: 600px) {
-            .language-selector, .voice-selector, .speed-selector {
+            .language-selector, .speed-selector {
                 flex-direction: column;
                 gap: 10px;
             }
-            .language-pair, .voice-pair, .speed-pair {
+            .language-pair, .speed-pair {
                 justify-content: center;
             }
             button {
@@ -220,139 +220,100 @@
     </div>
 
     <script>
-// Variabele om de recognition bij te houden (MOET BUITEN DE FUNCTIES STAAN!)
-let recognition;
+        // Variabele om de recognition bij te houden (MOET GLOBAAL ZIJN!)
+        let recognition;
 
-// Functie om de juiste taalcode te returnen
-function getLanguageCode(lang) {
-    switch (lang) {
-        case "nl": return "nl-NL";
-        case "en": return "en-US";
-        case "ar": return "ar-SA";
-        case "tr": return "tr-TR";
-        default: return "en-US";
-    }
-}
-
-// Spraakherkenning starten
-function startListening() {
-    if (recognition && recognition.state !== "inactive") {
-        recognition.stop();
-    }
-
-    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-        alert("Je browser ondersteunt spraakherkenning niet. Gebruik Chrome of Edge.");
-        return;
-    }
-
-    recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-    recognition.lang = getLanguageCode(document.getElementById("sourceLang").value);
-    recognition.continuous = false;
-    recognition.interimResults = false;
-
-    recognition.onstart = () => {
-        document.getElementById("inputText").placeholder = "Aan het luisteren...";
-        document.getElementById("inputText").classList.add("listening");
-    };
-
-    recognition.onend = () => {
-        document.getElementById("inputText").placeholder = "Typ hier je tekst...";
-        document.getElementById("inputText").classList.remove("listening");
-    };
-
-    recognition.onerror = (event) => {
-        console.error("Spraakherkenning fout:", event.error);
-        document.getElementById("inputText").placeholder = "Typ hier je tekst...";
-        document.getElementById("inputText").classList.remove("listening");
-
-        if (event.error === "not-allowed") {
-            alert("Microfoontoestemming is geblokkeerd. Geef toestemming in je browserinstellingen.");
-        } else if (event.error === "no-speech") {
-            alert("Geen spraak gedetecteerd. Probeer het opnieuw.");
-        } else {
-            alert("Er is een fout opgetreden: " + event.error);
+        // Functie om het thema te wisselen
+        function toggleTheme() {
+            const body = document.body;
+            const isDarkMode = body.classList.toggle("dark-mode");
+            localStorage.setItem("darkMode", isDarkMode);
         }
-    };
 
-    recognition.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        document.getElementById("inputText").value = transcript;
-        document.getElementById("inputText").placeholder = "Typ hier je tekst...";
-        document.getElementById("inputText").classList.remove("listening");
-    };
-
-    recognition.start();
-}
-
-// Spraakherkenning stoppen
-function stopListening() {
-    if (recognition && recognition.state !== "inactive") {
-        recognition.stop();
-        document.getElementById("inputText").placeholder = "Typ hier je tekst...";
-        document.getElementById("inputText").classList.remove("listening");
-    }
-}
+        // Functie om de juiste taalcode te returnen
+        function getLanguageCode(lang) {
+            switch (lang) {
+                case "nl": return "nl-NL";
+                case "en": return "en-US";
+                case "ar": return "ar-SA";
+                case "tr": return "tr-TR";
+                default: return "en-US";
             }
         }
 
-        // Vertaalfunctie
-        async function translateText() {
-            const inputText = document.getElementById("inputText").value;
-            const sourceLang = document.getElementById("sourceLang").value;
-            const targetLang = document.getElementById("targetLang").value;
+        // Controleer of de gebruiker eerder donkere modus heeft gekozen
+        document.addEventListener("DOMContentLoaded", () => {
+            const savedTheme = localStorage.getItem("darkMode");
+            if (savedTheme === "true") {
+                document.body.classList.add("dark-mode");
+                document.getElementById("themeSwitch").checked = true;
+            }
 
-            if (!inputText) {
-                alert("Voer eerst tekst in!");
+            // Voeg een event listener toe voor de snelheidsregelaar
+            const speedControl = document.getElementById("speedControl");
+            const speedValue = document.getElementById("speedValue");
+            speedControl.addEventListener("input", () => {
+                speedValue.textContent = speedControl.value;
+            });
+        });
+
+        // Spraakherkenning starten
+        function startListening() {
+            // Stop eventuele bestaande herkenning
+            if (recognition && recognition.state !== "inactive") {
+                recognition.stop();
+            }
+
+            // Controleer of de browser spraakherkenning ondersteunt
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                alert("Je browser ondersteunt spraakherkenning niet. Gebruik Chrome of Edge.");
                 return;
             }
 
-            document.getElementById("outputText").textContent = "Vertalen...";
+            // Initialiseer de spraakherkenning
+            recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.lang = getLanguageCode(document.getElementById("sourceLang").value);
+            recognition.continuous = false;
+            recognition.interimResults = false;
 
-            try {
-                const response = await fetch(
-                    `https://api.mymemory.translated.net/get?q=${encodeURIComponent(inputText)}&langpair=${sourceLang}|${targetLang}`
-                );
-                const data = await response.json();
+            // Event handlers voor spraakherkenning
+            recognition.onstart = () => {
+                document.getElementById("inputText").placeholder = "Aan het luisteren...";
+                document.getElementById("inputText").classList.add("listening");
+            };
 
-                if (data.responseStatus === 200) {
-                    document.getElementById("outputText").textContent = data.responseData.translatedText;
+            recognition.onend = () => {
+                document.getElementById("inputText").placeholder = "Typ hier je tekst...";
+                document.getElementById("inputText").classList.remove("listening");
+            };
+
+            recognition.onerror = (event) => {
+                console.error("Spraakherkenning fout:", event.error);
+                document.getElementById("inputText").placeholder = "Typ hier je tekst...";
+                document.getElementById("inputText").classList.remove("listening");
+
+                if (event.error === "not-allowed") {
+                    alert("Microfoontoestemming is geblokkeerd. Geef toestemming in je browserinstellingen.");
+                } else if (event.error === "no-speech") {
+                    alert("Geen spraak gedetecteerd. Probeer het opnieuw.");
                 } else {
-                    document.getElementById("outputText").textContent = "Fout bij vertalen. Probeer het opnieuw.";
+                    alert("Er is een fout opgetreden: " + event.error);
                 }
-            } catch (error) {
-                console.error("Fout:", error);
-                document.getElementById("outputText").textContent = "Er is een fout opgetreden.";
-            }
+            };
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                document.getElementById("inputText").value = transcript;
+                document.getElementById("inputText").placeholder = "Typ hier je tekst...";
+                document.getElementById("inputText").classList.remove("listening");
+            };
+
+            // Start de spraakherkenning
+            recognition.start();
         }
 
-        // Voorleesfunctie met snelheidsregelaar
-        async function speakText() {
-            const outputText = document.getElementById("outputText").textContent;
-            const targetLang = document.getElementById("targetLang").value;
-
-            if (!outputText || outputText === "Vertaalde tekst:" || outputText === "Vertalen...") {
-                alert("Er is geen tekst om voor te lezen. Vertaal eerst een tekst.");
-                return;
-            }
-
-            const apiKey = "JOUW_GOOGLE_CLOUD_API_SLEUTEL";
-            const languageCode = getLanguageCode(targetLang);
-
-            // Haal de ingestelde snelheid op
-            const speed = parseFloat(document.getElementById("speedControl").value);
-
-            try {
-                const response = await fetch(`https://texttospeech.googleapis.com/v1/text:synthesize?key=${apiKey}`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        input: { text: outputText },
-                        voice: {
-                            languageCode: languageCode,
-                            ssmlGender: "NEUTRAL"
-                        },
-                        audioConfig: {
-                            audioEncoding: "MP3",
-                            speakingRate:
+        // Spraakherkenning stoppen
+        function stopListening() {
+            if (recognition && recognition.state !== "inactive") {
+                recognition.stop();
+                document.getElementById("inputText").placeholder = "
