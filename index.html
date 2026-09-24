@@ -241,12 +241,14 @@
         // Functie om de juiste taalcode te returnen
         function getLanguageCode(lang) {
             switch (lang) {
-                case "nl": return "nl-NL";
-                case "en": return "en-US";
-                case "ar": return "ar-SA";
-                case "so": return "so-SO";
-                case "tr": return "tr-TR";
-                default: return "en-US";
+                case "nl": return "nl-NL";       // Nederlands
+                case "en": return "en-US";       // Engels (VS)
+                case "ar": return "ar-SA";       // Arabisch (Saoedi-Arabië)
+                case "so": return "so-SO";       // Somalisch (Somalië)
+                case "tr": return "tr-TR";       // Turks (Turkije)
+                default: return "en-US";        // Standaard: Engels
+    }
+}
             }
         }
 
@@ -417,33 +419,59 @@
             }
         }
 
-        // Voorleesfunctie (met geforceerde taal)
-        function speakText() {
-            const outputText = document.getElementById("outputText").textContent;
-            const targetLang = document.getElementById("targetLang").value;
+       // Voorleesfunctie met Google Cloud TTS
+async function speakText() {
+    const outputText = document.getElementById("outputText").textContent;
+    const targetLang = document.getElementById("targetLang").value;
 
-            if (!outputText || outputText === "Vertaalde tekst:" || outputText === "Vertalen...") {
-                alert("Er is geen tekst om voor te lezen. Vertaal eerst een tekst.");
-                return;
+    if (!outputText || outputText === "Vertaalde tekst:" || outputText === "Vertalen...") {
+        alert("Er is geen tekst om voor te lezen. Vertaal eerst een tekst.");
+        return;
+    }
+
+    // Vervang dit door je eigen API-sleutel
+    const apiKey = "JOUW_GOOGLE_CLOUD_API_SLEUTEL";
+
+    // Bepaal de taalcode voor Google TTS
+    const languageCode = getLanguageCode(targetLang);
+
+    try {
+        // Roep de Google Cloud TTS API aan
+        const response = await fetch(
+            `https://texttospeech.googleapis.com/v1/text:synthesize?key=${apiKey}`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    input: { text: outputText },
+                    voice: {
+                        languageCode: languageCode,
+                        ssmlGender: "NEUTRAL" // Opties: NEUTRAL, MALE, FEMALE
+                    },
+                    audioConfig: {
+                        audioEncoding: "MP3" // Opties: MP3, LINEAR16, OGG_OPUS, etc.
+                    }
+                })
             }
+        );
 
-            const utterance = new SpeechSynthesisUtterance(outputText);
-            utterance.lang = getLanguageCode(targetLang); // Forceer de juiste taal
-
-            if (selectedVoice) {
-                utterance.voice = selectedVoice;
-            }
-
-            utterance.rate = 0.9;
-            utterance.pitch = 1.0;
-
-            utterance.onerror = (event) => {
-                console.error("Fout bij voorlezen:", event.error);
-                alert("Er is een fout opgetreden bij het voorlezen. Probeer het opnieuw.");
-            };
-
-            speechSynthesis.speak(utterance);
+        if (!response.ok) {
+            throw new Error(`Fout bij het ophalen van audio: ${response.statusText}`);
         }
+
+        const data = await response.json();
+
+        // Decodeer de base64 audio en speel af
+        const audioContent = data.audioContent;
+        const audio = new Audio(`data:audio/mp3;base64,${audioContent}`);
+        audio.play();
+    } catch (error) {
+        console.error("Fout bij voorlezen:", error);
+        alert("Er is een fout opgetreden bij het voorlezen. Controleer je API-sleutel en probeer het opnieuw.");
+    }
+}
     </script>
 </body>
 </html>
