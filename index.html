@@ -178,7 +178,7 @@
                     <option value="en">🇬🇧 Engels</option>
                     <option value="ar">🇸🇦 Arabisch</option>
                     <option value="so">🇸🇴 Somalisch</option>
-                    <option value="tr">TR Turks</option>
+                    <option value="tr">🇹🇷 Turks</option>
                 </select>
             </div>
             <div class="language-pair">
@@ -188,7 +188,7 @@
                     <option value="nl">🇳🇱 Nederlands</option>
                     <option value="ar">🇸🇦 Arabisch</option>
                     <option value="so">🇸🇴 Somalisch</option>
-                    <option value="tr">TR Turks</option>
+                    <option value="tr">🇹🇷 Turks</option>
                 </select>
             </div>
         </div>
@@ -245,6 +245,7 @@
                 case "en": return "en-US";
                 case "ar": return "ar-SA";
                 case "so": return "so-SO";
+                case "tr": return "tr-TR";
                 default: return "en-US";
             }
         }
@@ -253,35 +254,68 @@
         function getBestVoice(lang) {
             const voices = speechSynthesis.getVoices();
             const langPrefix = lang.split('-')[0];
+            const desiredLanguages = ["nl", "en", "ar", "so", "tr"];
+
+            if (!desiredLanguages.includes(langPrefix)) {
+                langPrefix = "en";
+            }
 
             for (const voice of voices) {
-                if (voice.lang.startsWith(langPrefix) && (voice.name.includes("Wavenet") || voice.name.includes("Google"))) {
+                if (voice.lang.startsWith(langPrefix)) {
                     return voice;
                 }
             }
 
-            const filteredVoices = voices.filter(voice => voice.lang.startsWith(langPrefix));
-            if (filteredVoices.length > 0) {
-                return filteredVoices[0];
-            }
-
-            return voices.find(voice => voice.lang.startsWith("en")) || voices[0];
+            return null;
         }
 
-        // Laad stemmen in de dropdown
+        // Laad stemmen in de dropdown (inclusief handmatige toevoeging voor ontbrekende talen)
         function loadVoices() {
             const voiceSelect = document.getElementById("voiceSelect");
             const voices = speechSynthesis.getVoices();
+            const desiredLanguages = ["nl", "en", "ar", "so", "tr"];
 
             voiceSelect.innerHTML = "";
 
+            // Voeg beschikbare stemmen toe
             voices.forEach(voice => {
-                const option = document.createElement("option");
-                option.textContent = `${voice.name} (${voice.lang})`;
-                option.setAttribute("data-lang", voice.lang);
-                option.setAttribute("data-name", voice.name);
-                voiceSelect.appendChild(option);
+                const voiceLangPrefix = voice.lang.split('-')[0];
+                if (desiredLanguages.includes(voiceLangPrefix)) {
+                    const option = document.createElement("option");
+                    option.textContent = `${voice.name} (${voice.lang})`;
+                    option.setAttribute("data-lang", voice.lang);
+                    option.setAttribute("data-name", voice.name);
+                    voiceSelect.appendChild(option);
+                }
             });
+
+            // Voeg handmatig ontbrekende talen toe
+            const manualVoices = [
+                { name: "Arabisch (Saoedi-Arabië)", lang: "ar-SA" },
+                { name: "Somalisch (Somalië)", lang: "so-SO" },
+                { name: "Turks (Turkije)", lang: "tr-TR" }
+            ];
+
+            manualVoices.forEach(voice => {
+                const exists = Array.from(voiceSelect.options).some(
+                    option => option.getAttribute("data-lang") === voice.lang
+                );
+                if (!exists) {
+                    const option = document.createElement("option");
+                    option.textContent = `${voice.name} (${voice.lang})`;
+                    option.setAttribute("data-lang", voice.lang);
+                    option.setAttribute("data-name", voice.name);
+                    voiceSelect.appendChild(option);
+                }
+            });
+
+            // Als er geen stemmen zijn, voeg een melding toe
+            if (voiceSelect.options.length === 0) {
+                const option = document.createElement("option");
+                option.textContent = "Geen stemmen beschikbaar voor geselecteerde talen.";
+                option.disabled = true;
+                voiceSelect.appendChild(option);
+            }
         }
 
         // Update de geselecteerde stem
@@ -383,7 +417,7 @@
             }
         }
 
-        // Voorleesfunctie
+        // Voorleesfunctie (met geforceerde taal)
         function speakText() {
             const outputText = document.getElementById("outputText").textContent;
             const targetLang = document.getElementById("targetLang").value;
@@ -394,22 +428,14 @@
             }
 
             const utterance = new SpeechSynthesisUtterance(outputText);
-            utterance.lang = getLanguageCode(targetLang);
+            utterance.lang = getLanguageCode(targetLang); // Forceer de juiste taal
 
-            // Gebruik de geselecteerde stem (als deze is gekozen)
             if (selectedVoice) {
                 utterance.voice = selectedVoice;
-            } else {
-                // Anders: kies de beste stem automatisch
-                const bestVoice = getBestVoice(utterance.lang);
-                if (bestVoice) {
-                    utterance.voice = bestVoice;
-                }
             }
 
-            // Verbeter de uitspraak
-            utterance.rate = 0.9; // Langzamer praten
-            utterance.pitch = 1.0; // Normale toonhoogte
+            utterance.rate = 0.9;
+            utterance.pitch = 1.0;
 
             utterance.onerror = (event) => {
                 console.error("Fout bij voorlezen:", event.error);
