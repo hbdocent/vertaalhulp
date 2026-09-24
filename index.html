@@ -193,13 +193,6 @@
             </div>
         </div>
 
-        <div class="voice-selector">
-            <div class="voice-pair">
-                <label for="voiceSelect">Stem:</label>
-                <select id="voiceSelect" onchange="updateVoice()"></select>
-            </div>
-        </div>
-
         <div class="button-group">
             <button onclick="translateText()">Vertalen</button>
             <button onclick="startListening()">🎤 Spraak opnemen</button>
@@ -212,9 +205,8 @@
     </div>
 
     <script>
-        // Variabele om de recognition en geselecteerde stem bij te houden
+        // Variabele om de recognition bij te houden
         let recognition;
-        let selectedVoice = null;
 
         // Functie om het thema te wisselen
         function toggleTheme() {
@@ -230,15 +222,9 @@
                 document.body.classList.add("dark-mode");
                 document.getElementById("themeSwitch").checked = true;
             }
-
-            // Laad stemmen wanneer de pagina laadt
-            loadVoices();
-            if (speechSynthesis.onvoiceschanged !== undefined) {
-                speechSynthesis.onvoiceschanged = loadVoices;
-            }
         });
 
-        // Functie om de juiste taalcode te returnen
+        // Functie om de juiste taalcode te returnen voor Google TTS
         function getLanguageCode(lang) {
             switch (lang) {
                 case "nl": return "nl-NL";       // Nederlands
@@ -247,87 +233,7 @@
                 case "so": return "so-SO";       // Somalisch (Somalië)
                 case "tr": return "tr-TR";       // Turks (Turkije)
                 default: return "en-US";        // Standaard: Engels
-    }
-}
             }
-        }
-
-        // Functie om de beste stem te selecteren voor een taal
-        function getBestVoice(lang) {
-            const voices = speechSynthesis.getVoices();
-            const langPrefix = lang.split('-')[0];
-            const desiredLanguages = ["nl", "en", "ar", "so", "tr"];
-
-            if (!desiredLanguages.includes(langPrefix)) {
-                langPrefix = "en";
-            }
-
-            for (const voice of voices) {
-                if (voice.lang.startsWith(langPrefix)) {
-                    return voice;
-                }
-            }
-
-            return null;
-        }
-
-        // Laad stemmen in de dropdown (inclusief handmatige toevoeging voor ontbrekende talen)
-        function loadVoices() {
-            const voiceSelect = document.getElementById("voiceSelect");
-            const voices = speechSynthesis.getVoices();
-            const desiredLanguages = ["nl", "en", "ar", "so", "tr"];
-
-            voiceSelect.innerHTML = "";
-
-            // Voeg beschikbare stemmen toe
-            voices.forEach(voice => {
-                const voiceLangPrefix = voice.lang.split('-')[0];
-                if (desiredLanguages.includes(voiceLangPrefix)) {
-                    const option = document.createElement("option");
-                    option.textContent = `${voice.name} (${voice.lang})`;
-                    option.setAttribute("data-lang", voice.lang);
-                    option.setAttribute("data-name", voice.name);
-                    voiceSelect.appendChild(option);
-                }
-            });
-
-            // Voeg handmatig ontbrekende talen toe
-            const manualVoices = [
-                { name: "Arabisch (Saoedi-Arabië)", lang: "ar-SA" },
-                { name: "Somalisch (Somalië)", lang: "so-SO" },
-                { name: "Turks (Turkije)", lang: "tr-TR" }
-            ];
-
-            manualVoices.forEach(voice => {
-                const exists = Array.from(voiceSelect.options).some(
-                    option => option.getAttribute("data-lang") === voice.lang
-                );
-                if (!exists) {
-                    const option = document.createElement("option");
-                    option.textContent = `${voice.name} (${voice.lang})`;
-                    option.setAttribute("data-lang", voice.lang);
-                    option.setAttribute("data-name", voice.name);
-                    voiceSelect.appendChild(option);
-                }
-            });
-
-            // Als er geen stemmen zijn, voeg een melding toe
-            if (voiceSelect.options.length === 0) {
-                const option = document.createElement("option");
-                option.textContent = "Geen stemmen beschikbaar voor geselecteerde talen.";
-                option.disabled = true;
-                voiceSelect.appendChild(option);
-            }
-        }
-
-        // Update de geselecteerde stem
-        function updateVoice() {
-            const voiceSelect = document.getElementById("voiceSelect");
-            const selectedOption = voiceSelect.selectedOptions[0];
-            const voiceName = selectedOption.getAttribute("data-name");
-            const voices = speechSynthesis.getVoices();
-
-            selectedVoice = voices.find(voice => voice.name === voiceName);
         }
 
         // Spraakherkenning starten
@@ -419,59 +325,59 @@
             }
         }
 
-       // Voorleesfunctie met Google Cloud TTS
-async function speakText() {
-    const outputText = document.getElementById("outputText").textContent;
-    const targetLang = document.getElementById("targetLang").value;
+        // Voorleesfunctie met Google Cloud TTS
+        async function speakText() {
+            const outputText = document.getElementById("outputText").textContent;
+            const targetLang = document.getElementById("targetLang").value;
 
-    if (!outputText || outputText === "Vertaalde tekst:" || outputText === "Vertalen...") {
-        alert("Er is geen tekst om voor te lezen. Vertaal eerst een tekst.");
-        return;
-    }
-
-    // Vervang dit door je eigen API-sleutel
-    const apiKey = "JOUW_GOOGLE_CLOUD_API_SLEUTEL";
-
-    // Bepaal de taalcode voor Google TTS
-    const languageCode = getLanguageCode(targetLang);
-
-    try {
-        // Roep de Google Cloud TTS API aan
-        const response = await fetch(
-            `https://texttospeech.googleapis.com/v1/text:synthesize?key=${apiKey}`,
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    input: { text: outputText },
-                    voice: {
-                        languageCode: languageCode,
-                        ssmlGender: "NEUTRAL" // Opties: NEUTRAL, MALE, FEMALE
-                    },
-                    audioConfig: {
-                        audioEncoding: "MP3" // Opties: MP3, LINEAR16, OGG_OPUS, etc.
-                    }
-                })
+            if (!outputText || outputText === "Vertaalde tekst:" || outputText === "Vertalen...") {
+                alert("Er is geen tekst om voor te lezen. Vertaal eerst een tekst.");
+                return;
             }
-        );
 
-        if (!response.ok) {
-            throw new Error(`Fout bij het ophalen van audio: ${response.statusText}`);
+            // Vervang dit door je eigen Google Cloud API-sleutel
+            const apiKey = "JOUW_GOOGLE_CLOUD_API_SLEUTEL";
+
+            // Bepaal de taalcode voor Google TTS
+            const languageCode = getLanguageCode(targetLang);
+
+            try {
+                // Roep de Google Cloud TTS API aan
+                const response = await fetch(
+                    `https://texttospeech.googleapis.com/v1/text:synthesize?key=${apiKey}`,
+                    {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                            input: { text: outputText },
+                            voice: {
+                                languageCode: languageCode,
+                                ssmlGender: "NEUTRAL" // Opties: NEUTRAL, MALE, FEMALE
+                            },
+                            audioConfig: {
+                                audioEncoding: "MP3" // Opties: MP3, LINEAR16, OGG_OPUS, etc.
+                            }
+                        })
+                    }
+                );
+
+                if (!response.ok) {
+                    throw new Error(`Fout bij het ophalen van audio: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+
+                // Decodeer de base64 audio en speel af
+                const audioContent = data.audioContent;
+                const audio = new Audio(`data:audio/mp3;base64,${audioContent}`);
+                audio.play();
+            } catch (error) {
+                console.error("Fout bij voorlezen:", error);
+                alert("Er is een fout opgetreden bij het voorlezen. Controleer je API-sleutel en probeer het opnieuw.");
+            }
         }
-
-        const data = await response.json();
-
-        // Decodeer de base64 audio en speel af
-        const audioContent = data.audioContent;
-        const audio = new Audio(`data:audio/mp3;base64,${audioContent}`);
-        audio.play();
-    } catch (error) {
-        console.error("Fout bij voorlezen:", error);
-        alert("Er is een fout opgetreden bij het voorlezen. Controleer je API-sleutel en probeer het opnieuw.");
-    }
-}
     </script>
 </body>
 </html>
